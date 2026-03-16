@@ -438,6 +438,20 @@ The condition of a particular Node.
 | ---- | ----------- | ------ | -------- |
 | condition | the name of Kubernetes Node condition. Example: Ready, Memory, PID, DiskPressure | Any Str | Recommended |
 
+### k8s.pod.status_condition
+
+The condition of a particular Pod. True is 1, False is 0, Unknown is -1.
+
+| Unit | Metric Type | Value Type | Stability |
+| ---- | ----------- | ---------- | --------- |
+| {condition} | Gauge | Int | Development |
+
+#### Attributes
+
+| Name | Description | Values | Requirement Level |
+| ---- | ----------- | ------ | -------- |
+| k8s.pod.condition | the name of a Kubernetes Pod condition. Example: PodScheduled, Ready, ContainersReady, Initialized | Any Str | Recommended |
+
 ### k8s.pod.status_reason
 
 Current status reason of the pod (1 - Evicted, 2 - NodeAffinity, 3 - NodeLost, 4 - Shutdown, 5 - UnexpectedAdmissionError, 6 - Unknown)

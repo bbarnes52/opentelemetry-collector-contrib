@@ -43,9 +43,10 @@ func Transform(pod *corev1.Pod) *corev1.Pod {
 			NodeName: pod.Spec.NodeName,
 		},
 		Status: corev1.PodStatus{
-			Phase:    pod.Status.Phase,
-			QOSClass: pod.Status.QOSClass,
-			Reason:   pod.Status.Reason,
+			Phase:      pod.Status.Phase,
+			QOSClass:   pod.Status.QOSClass,
+			Reason:     pod.Status.Reason,
+			Conditions: pod.Status.Conditions,
 		},
 	}
 	for i := range pod.Status.ContainerStatuses {
@@ -73,7 +74,16 @@ func Transform(pod *corev1.Pod) *corev1.Pod {
 	return newPod
 }
 
+var podConditionValues = map[corev1.ConditionStatus]int64{
+	corev1.ConditionTrue:    1,
+	corev1.ConditionFalse:   0,
+	corev1.ConditionUnknown: -1,
+}
+
 func RecordMetrics(logger *zap.Logger, mb *metadata.MetricsBuilder, pod *corev1.Pod, ts pcommon.Timestamp) {
+	for _, c := range pod.Status.Conditions {
+		mb.RecordK8sPodStatusConditionDataPoint(ts, podConditionValues[c.Status], string(c.Type))
+	}
 	mb.RecordK8sPodPhaseDataPoint(ts, int64(phaseToInt(pod.Status.Phase)))
 	mb.RecordK8sPodStatusReasonDataPoint(ts, int64(reasonToInt(pod.Status.Reason)))
 	rb := mb.NewResourceBuilder()

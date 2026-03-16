@@ -456,6 +456,9 @@ attributes:
   k8s.namespace.name:
     description: The k8s namespace name.
     type: string
+  k8s.pod.condition:
+    description: "the name of a Kubernetes Pod condition. Example: PodScheduled, Ready, ContainersReady, Initialized"
+    type: string
   k8s.service.endpoint.address_type:
     description: The address type of the endpoint.
     type: string
@@ -750,6 +753,16 @@ metrics:
     stability: development
     gauge:
       value_type: int
+    entity: k8s.pod
+  k8s.pod.status_condition:
+    enabled: false
+    description: The condition of a particular Pod. True is 1, False is 0, Unknown is -1.
+    unit: "{condition}"
+    stability: development
+    gauge:
+      value_type: int
+    attributes:
+      - k8s.pod.condition
     entity: k8s.pod
   k8s.pod.status_reason:
     enabled: false

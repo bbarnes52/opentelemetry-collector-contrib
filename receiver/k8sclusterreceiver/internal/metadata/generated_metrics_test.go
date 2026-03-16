@@ -189,6 +189,9 @@ func TestMetricsBuilder(t *testing.T) {
 			mb.RecordK8sPodPhaseDataPoint(ts, 1)
 
 			allMetricsCount++
+			mb.RecordK8sPodStatusConditionDataPoint(ts, 1, "k8s.pod.condition-val")
+
+			allMetricsCount++
 			mb.RecordK8sPodStatusReasonDataPoint(ts, 1)
 
 			defaultMetricsCount++
@@ -706,6 +709,21 @@ func TestMetricsBuilder(t *testing.T) {
 					assert.Equal(t, ts, dp.Timestamp())
 					assert.Equal(t, pmetric.NumberDataPointValueTypeInt, dp.ValueType())
 					assert.Equal(t, int64(1), dp.IntValue())
+				case "k8s.pod.status_condition":
+					assert.False(t, validatedMetrics["k8s.pod.status_condition"], "Found a duplicate in the metrics slice: k8s.pod.status_condition")
+					validatedMetrics["k8s.pod.status_condition"] = true
+					assert.Equal(t, pmetric.MetricTypeGauge, ms.At(i).Type())
+					assert.Equal(t, 1, ms.At(i).Gauge().DataPoints().Len())
+					assert.Equal(t, "The condition of a particular Pod. True is 1, False is 0, Unknown is -1.", ms.At(i).Description())
+					assert.Equal(t, "{condition}", ms.At(i).Unit())
+					dp := ms.At(i).Gauge().DataPoints().At(0)
+					assert.Equal(t, start, dp.StartTimestamp())
+					assert.Equal(t, ts, dp.Timestamp())
+					assert.Equal(t, pmetric.NumberDataPointValueTypeInt, dp.ValueType())
+					assert.Equal(t, int64(1), dp.IntValue())
+					attrVal, ok := dp.Attributes().Get("k8s.pod.condition")
+					assert.True(t, ok)
+					assert.Equal(t, "k8s.pod.condition-val", attrVal.Str())
 				case "k8s.pod.status_reason":
 					assert.False(t, validatedMetrics["k8s.pod.status_reason"], "Found a duplicate in the metrics slice: k8s.pod.status_reason")
 					validatedMetrics["k8s.pod.status_reason"] = true

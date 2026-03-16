@@ -9,6 +9,7 @@ import (
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/stretchr/testify/require"
+
 	"go.opentelemetry.io/collector/confmap"
 	"go.opentelemetry.io/collector/confmap/confmaptest"
 )
@@ -57,6 +58,7 @@ func TestMetricsBuilderConfig(t *testing.T) {
 					K8sNamespacePhase:                   MetricConfig{Enabled: true},
 					K8sNodeCondition:                    MetricConfig{Enabled: true},
 					K8sPodPhase:                         MetricConfig{Enabled: true},
+					K8sPodStatusCondition:               MetricConfig{Enabled: true},
 					K8sPodStatusReason:                  MetricConfig{Enabled: true},
 					K8sReplicasetAvailable:              MetricConfig{Enabled: true},
 					K8sReplicasetDesired:                MetricConfig{Enabled: true},
@@ -159,6 +161,7 @@ func TestMetricsBuilderConfig(t *testing.T) {
 					K8sNamespacePhase:                   MetricConfig{Enabled: false},
 					K8sNodeCondition:                    MetricConfig{Enabled: false},
 					K8sPodPhase:                         MetricConfig{Enabled: false},
+					K8sPodStatusCondition:               MetricConfig{Enabled: false},
 					K8sPodStatusReason:                  MetricConfig{Enabled: false},
 					K8sReplicasetAvailable:              MetricConfig{Enabled: false},
 					K8sReplicasetDesired:                MetricConfig{Enabled: false},

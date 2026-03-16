@@ -453,6 +453,10 @@ func TestTransform(t *testing.T) {
 			HostIP:    "192.168.1.100",
 			PodIP:     "10.244.0.5",
 			StartTime: &v1.Time{Time: v1.Now().Add(-5 * time.Minute)},
+			Conditions: []corev1.PodCondition{
+				{Type: corev1.PodScheduled, Status: corev1.ConditionTrue},
+				{Type: corev1.PodReady, Status: corev1.ConditionFalse},
+			},
 			ContainerStatuses: []corev1.ContainerStatus{
 				{
 					Name:         "my-failing-container",
@@ -515,6 +519,10 @@ func TestTransform(t *testing.T) {
 		Status: corev1.PodStatus{
 			Phase:  corev1.PodRunning,
 			Reason: "Evicted",
+			Conditions: []corev1.PodCondition{
+				{Type: corev1.PodScheduled, Status: corev1.ConditionTrue},
+				{Type: corev1.PodReady, Status: corev1.ConditionFalse},
+			},
 			ContainerStatuses: []corev1.ContainerStatus{
 				{
 					Name:         "my-failing-container",
@@ -662,6 +670,51 @@ func TestPodContainerReasonMetrics(t *testing.T) {
 	m := mb.Emit()
 
 	expected, err := golden.ReadMetrics(filepath.Join("testdata", "expected_container_reason.yaml"))
+	require.NoError(t, err)
+	require.NoError(t, pmetrictest.CompareMetrics(expected, m,
+		pmetrictest.IgnoreTimestamp(),
+		pmetrictest.IgnoreStartTimestamp(),
+		pmetrictest.IgnoreResourceMetricsOrder(),
+		pmetrictest.IgnoreMetricsOrder(),
+		pmetrictest.IgnoreScopeMetricsOrder(),
+	),
+	)
+}
+
+func TestPodStatusConditionMetrics(t *testing.T) {
+	pod := testutils.NewPodWithContainer(
+		"1",
+		testutils.NewPodSpecWithContainer("container-name"),
+		&corev1.PodStatus{
+			Phase: corev1.PodSucceeded,
+			Conditions: []corev1.PodCondition{
+				{Type: corev1.PodScheduled, Status: corev1.ConditionTrue},
+				{Type: corev1.PodReady, Status: corev1.ConditionTrue},
+				{Type: corev1.ContainersReady, Status: corev1.ConditionFalse},
+			},
+			ContainerStatuses: []corev1.ContainerStatus{
+				{
+					Name:         "container-name",
+					Ready:        true,
+					RestartCount: 3,
+					Image:        "container-image-name",
+					ContainerID:  containerIDWithPrefix("container-id"),
+					State: corev1.ContainerState{
+						Running: &corev1.ContainerStateRunning{},
+					},
+				},
+			},
+		},
+	)
+
+	mbc := metadata.DefaultMetricsBuilderConfig()
+	mbc.Metrics.K8sPodStatusCondition.Enabled = true
+	ts := pcommon.Timestamp(time.Now().UnixNano())
+	mb := metadata.NewMetricsBuilder(mbc, receivertest.NewNopSettings(metadata.Type))
+	RecordMetrics(zap.NewNop(), mb, pod, ts)
+	m := mb.Emit()
+
+	expected, err := golden.ReadMetrics(filepath.Join("testdata", "expected_status_condition.yaml"))
 	require.NoError(t, err)
 	require.NoError(t, pmetrictest.CompareMetrics(expected, m,
 		pmetrictest.IgnoreTimestamp(),
