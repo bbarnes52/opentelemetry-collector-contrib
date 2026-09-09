@@ -504,7 +504,7 @@ resourceMetrics:
                         stringValue: used
                   startTimeUnixNano: "1000000"
                   timeUnixNano: "2000000"
-                - asInt: "0"
+                - asInt: "455400818"
                   attributes:
                     - key: location
                       value:
@@ -514,7 +514,7 @@ resourceMetrics:
                         stringValue: free
                   startTimeUnixNano: "1000000"
                   timeUnixNano: "2000000"
-                - asInt: "0"
+                - asInt: "100596"
                   attributes:
                     - key: location
                       value:

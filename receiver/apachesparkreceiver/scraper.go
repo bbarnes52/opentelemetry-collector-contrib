@@ -317,12 +317,12 @@ func (s *sparkScraper) recordExecutors(executorStats []models.Executor, now pcom
 		s.mb.RecordSparkExecutorInputSizeDataPoint(now, executor.TotalInputBytes)
 		s.mb.RecordSparkExecutorShuffleIoSizeDataPoint(now, executor.TotalShuffleRead, metadata.AttributeDirectionIn)
 		s.mb.RecordSparkExecutorShuffleIoSizeDataPoint(now, executor.TotalShuffleWrite, metadata.AttributeDirectionOut)
-		used := executor.UsedOnHeapStorageMemory
+		used := executor.MemoryMetrics.UsedOnHeapStorageMemory
 		s.mb.RecordSparkExecutorStorageMemoryUsageDataPoint(now, used, metadata.AttributeLocationOnHeap, metadata.AttributeStateUsed)
-		s.mb.RecordSparkExecutorStorageMemoryUsageDataPoint(now, executor.TotalOnHeapStorageMemory-used, metadata.AttributeLocationOnHeap, metadata.AttributeStateFree)
-		used = executor.UsedOffHeapStorageMemory
+		s.mb.RecordSparkExecutorStorageMemoryUsageDataPoint(now, executor.MemoryMetrics.TotalOnHeapStorageMemory-used, metadata.AttributeLocationOnHeap, metadata.AttributeStateFree)
+		used = executor.MemoryMetrics.UsedOffHeapStorageMemory
 		s.mb.RecordSparkExecutorStorageMemoryUsageDataPoint(now, used, metadata.AttributeLocationOffHeap, metadata.AttributeStateUsed)
-		s.mb.RecordSparkExecutorStorageMemoryUsageDataPoint(now, executor.TotalOffHeapStorageMemory-used, metadata.AttributeLocationOffHeap, metadata.AttributeStateFree)
+		s.mb.RecordSparkExecutorStorageMemoryUsageDataPoint(now, executor.MemoryMetrics.TotalOffHeapStorageMemory-used, metadata.AttributeLocationOffHeap, metadata.AttributeStateFree)
 
 		rb := s.mb.NewResourceBuilder()
 		rb.SetSparkApplicationID(appID)

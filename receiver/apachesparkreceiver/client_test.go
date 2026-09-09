@@ -391,6 +391,11 @@ func TestExecutorStats(t *testing.T) {
 				require.NoError(t, err)
 				require.NotNil(t, executorStats)
 				require.Equal(t, expected, executorStats)
+				require.Len(t, executorStats, 1)
+				require.Equal(t, int64(100596), executorStats[0].MemoryMetrics.UsedOnHeapStorageMemory)
+				require.Equal(t, int64(0), executorStats[0].MemoryMetrics.UsedOffHeapStorageMemory)
+				require.Equal(t, int64(455501414), executorStats[0].MemoryMetrics.TotalOnHeapStorageMemory)
+				require.Equal(t, int64(0), executorStats[0].MemoryMetrics.TotalOffHeapStorageMemory)
 			},
 		},
 	}
