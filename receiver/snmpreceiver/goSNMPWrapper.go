@@ -4,6 +4,7 @@
 package snmpreceiver // import "github.com/open-telemetry/opentelemetry-collector-contrib/receiver/snmpreceiver"
 
 import (
+	"context"
 	"time"
 
 	"github.com/gosnmp/gosnmp"
@@ -73,6 +74,9 @@ type goSNMPWrapper interface {
 
 	// SetTimeout sets the Timeout
 	SetTimeout(timeout time.Duration)
+
+	// SetContext sets the context used by SNMP requests.
+	SetContext(ctx context.Context)
 
 	// GetMaxOids gets the MaxOids
 	GetMaxOids() int
@@ -179,6 +183,11 @@ func (w *otelGoSNMPWrapper) GetTimeout() time.Duration {
 // SetTimeout sets the Timeout
 func (w *otelGoSNMPWrapper) SetTimeout(timeout time.Duration) {
 	w.Timeout = timeout
+}
+
+// SetContext sets the context used by SNMP requests.
+func (w *otelGoSNMPWrapper) SetContext(ctx context.Context) {
+	w.Context = ctx
 }
 
 // GetMaxOids gets the MaxOids

@@ -62,7 +62,8 @@ func (s *snmpScraper) start(_ context.Context, _ component.Host) (err error) {
 }
 
 // scrape collects and creates OTEL metrics from a SNMP environment
-func (s *snmpScraper) scrape(_ context.Context) (pmetric.Metrics, error) {
+func (s *snmpScraper) scrape(ctx context.Context) (pmetric.Metrics, error) {
+	s.client.SetContext(ctx)
 	if err := s.client.Connect(); err != nil {
 		return pmetric.NewMetrics(), fmt.Errorf("problem connecting to SNMP host: %w", err)
 	}

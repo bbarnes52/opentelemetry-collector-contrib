@@ -3,6 +3,7 @@
 package mocks
 
 import (
+	context "context"
 	time "time"
 
 	gosnmp "github.com/gosnmp/gosnmp"
@@ -233,6 +234,11 @@ func (_m *MockGoSNMPWrapper) GetVersion() gosnmp.SnmpVersion {
 // SetCommunity provides a mock function with given fields: community
 func (_m *MockGoSNMPWrapper) SetCommunity(community string) {
 	_m.Called(community)
+}
+
+// SetContext provides a mock function with given fields: ctx
+func (_m *MockGoSNMPWrapper) SetContext(ctx context.Context) {
+	_m.Called(ctx)
 }
 
 // SetMaxOids provides a mock function with given fields: maxOids

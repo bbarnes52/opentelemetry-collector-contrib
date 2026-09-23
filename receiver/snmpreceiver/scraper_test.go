@@ -4,6 +4,7 @@
 package snmpreceiver // import "github.com/open-telemetry/opentelemetry-collector-contrib/receiver/snmpreceiver"
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"path/filepath"
@@ -24,6 +25,7 @@ import (
 
 type mockClient struct {
 	mock.Mock
+	ctx context.Context
 }
 
 // Close provides a mock function with given fields:
@@ -51,6 +53,11 @@ func (_m *mockClient) Connect() error {
 	}
 
 	return r0
+}
+
+// SetContext sets the context used for a scrape.
+func (_m *mockClient) SetContext(ctx context.Context) {
+	_m.ctx = ctx
 }
 
 // GetIndexedData provides a mock function with given fields: oids, scraperErrors
@@ -124,6 +131,7 @@ func TestScrape(t *testing.T) {
 			// Config is responsible for making sure this would never happen
 			desc: "No Metric Configs returns no metrics with no error",
 			testFunc: func(t *testing.T) {
+				ctx := t.Context()
 				mockClient := new(mockClient)
 				mockClient.On("Connect").Return(nil)
 				mockClient.On("Close").Return(nil)
@@ -133,9 +141,10 @@ func TestScrape(t *testing.T) {
 					client:   mockClient,
 					logger:   zap.NewNop(),
 				}
-				metrics, err := scraper.scrape(t.Context())
+				metrics, err := scraper.scrape(ctx)
 				require.NoError(t, err)
 				require.Equal(t, 0, metrics.MetricCount())
+				require.Same(t, ctx, mockClient.ctx)
 			},
 		},
 		{

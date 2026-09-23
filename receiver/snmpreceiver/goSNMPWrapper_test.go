@@ -10,6 +10,15 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+func TestGoSNMPWrapperSetContext(t *testing.T) {
+	w := newGoSNMPWrapper()
+	w.SetContext(t.Context())
+
+	actual, ok := w.(*otelGoSNMPWrapper)
+	require.True(t, ok)
+	require.Same(t, t.Context(), actual.Context)
+}
+
 // TestCloseWithNilConnDoesNotPanic guards against the SIGSEGV reported in
 // https://github.com/open-telemetry/opentelemetry-collector-contrib/issues/49703:
 // when a request times out mid-scrape, the connection-reset path in client.go

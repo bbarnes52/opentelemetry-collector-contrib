@@ -4,6 +4,7 @@
 package snmpreceiver // import "github.com/open-telemetry/opentelemetry-collector-contrib/receiver/snmpreceiver"
 
 import (
+	"context"
 	"fmt"
 	"net/url"
 	"strconv"
@@ -41,6 +42,8 @@ type client interface {
 	// GetIndexedData retrieves SNMP indexed data from a list of passed in OIDS,
 	// then returns the retrieved data
 	GetIndexedData(oids []string, scraperErrors *scrapererror.ScrapeErrors) []snmpData
+	// SetContext sets the context used for this scrape.
+	SetContext(ctx context.Context)
 	// Connect makes a connection to the SNMP host
 	Connect() error
 	// Close closes a connection to the SNMP host
@@ -51,6 +54,7 @@ type client interface {
 type snmpClient struct {
 	client goSNMPWrapper
 	logger *zap.Logger
+	ctx    context.Context
 }
 
 // Verify snmpClient implements client interface
@@ -181,6 +185,20 @@ func (c *snmpClient) Connect() error {
 	return c.client.Connect()
 }
 
+// SetContext sets the context used for this scrape. snmpClient is used
+// serially by scraperhelper, so the context remains stable for the scrape.
+func (c *snmpClient) SetContext(ctx context.Context) {
+	c.ctx = ctx
+	c.client.SetContext(ctx)
+}
+
+func (c *snmpClient) contextErr() error {
+	if c.ctx == nil {
+		return nil
+	}
+	return c.ctx.Err()
+}
+
 // Close uses the goSNMP client's close
 func (c *snmpClient) Close() error {
 	return c.client.Close()
@@ -201,10 +219,17 @@ func (c *snmpClient) GetScalarData(oids []string, scraperErrors *scrapererror.Sc
 
 	// For each group of OIDs
 	for _, oidChunk := range chunkedOIDs {
+		if err := c.contextErr(); err != nil {
+			scraperErrors.AddPartial(len(oidChunk), err)
+			return scalarData
+		}
 		// Note: Not implementing GetBulk as I don't think it would work correctly for the current design
 		packets, err := c.client.Get(oidChunk)
 		if err != nil {
 			scraperErrors.AddPartial(len(oidChunk), fmt.Errorf("problem with getting scalar data: problem with SNMP GET for OIDs '%v': %w", oidChunk, err))
+			if c.contextErr() != nil {
+				return scalarData
+			}
 			// Prevent getting stuck in a failure where we can't recover
 			if strings.Contains(err.Error(), "request timeout (after ") {
 				if err = c.Close(); err != nil {
@@ -253,6 +278,10 @@ func (c *snmpClient) GetIndexedData(oids []string, scraperErrors *scrapererror.S
 
 	// For each column based OID
 	for _, oid := range oids {
+		if err := c.contextErr(); err != nil {
+			scraperErrors.AddPartial(1, err)
+			return indexedData
+		}
 		// Call the correct gosnmp Walk function based on SNMP version
 		var err error
 		var snmpPDUs []gosnmp.SnmpPDU
@@ -263,6 +292,9 @@ func (c *snmpClient) GetIndexedData(oids []string, scraperErrors *scrapererror.S
 		}
 		if err != nil {
 			scraperErrors.AddPartial(1, fmt.Errorf("problem with getting indexed data: problem with SNMP WALK for OID '%v': %w", oid, err))
+			if c.contextErr() != nil {
+				return indexedData
+			}
 			// Allows for quicker recovery rather than timing out for each WALK OID and waiting for the next GET to fix it
 			if strings.Contains(err.Error(), "request timeout (after ") {
 				if err = c.Close(); err != nil {

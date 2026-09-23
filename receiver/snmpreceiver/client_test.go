@@ -4,6 +4,7 @@
 package snmpreceiver // import "github.com/open-telemetry/opentelemetry-collector-contrib/receiver/snmpreceiver"
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"math"
@@ -193,6 +194,62 @@ func TestClose(t *testing.T) {
 	for _, tc := range testCases {
 		t.Run(tc.desc, tc.testFunc)
 	}
+}
+
+func TestClientSetContext(t *testing.T) {
+	mockGoSNMP := new(mocks.MockGoSNMPWrapper)
+	mockGoSNMP.On("SetContext", t.Context()).Return().Once()
+	c := &snmpClient{
+		logger: zap.NewNop(),
+		client: mockGoSNMP,
+	}
+
+	c.SetContext(t.Context())
+
+	require.Same(t, t.Context(), c.ctx)
+	mockGoSNMP.AssertExpectations(t)
+}
+
+func TestGetScalarDataStopsWhenContextCanceled(t *testing.T) {
+	ctx, cancel := context.WithCancel(t.Context())
+	cancel()
+
+	mockGoSNMP := new(mocks.MockGoSNMPWrapper)
+	mockGoSNMP.On("GetMaxOids", mock.Anything).Return(1)
+	c := &snmpClient{
+		logger: zap.NewNop(),
+		client: mockGoSNMP,
+		ctx:    ctx,
+	}
+	var scraperErrors scrapererror.ScrapeErrors
+
+	got := c.GetScalarData([]string{"1", "2"}, &scraperErrors)
+
+	require.Nil(t, got)
+	require.ErrorContains(t, scraperErrors.Combine(), context.Canceled.Error())
+	mockGoSNMP.AssertNotCalled(t, "Get", mock.Anything)
+}
+
+func TestGetIndexedDataStopsWhenContextCanceled(t *testing.T) {
+	ctx, cancel := context.WithCancel(t.Context())
+	mockGoSNMP := new(mocks.MockGoSNMPWrapper)
+	mockGoSNMP.On("GetVersion", mock.Anything).Return(gosnmp.Version2c).Once()
+	mockGoSNMP.On("BulkWalkAll", "1").
+		Run(func(mock.Arguments) { cancel() }).
+		Return(nil, context.Canceled).
+		Once()
+	c := &snmpClient{
+		logger: zap.NewNop(),
+		client: mockGoSNMP,
+		ctx:    ctx,
+	}
+	var scraperErrors scrapererror.ScrapeErrors
+
+	got := c.GetIndexedData([]string{"1", "2"}, &scraperErrors)
+
+	require.Nil(t, got)
+	require.ErrorContains(t, scraperErrors.Combine(), context.Canceled.Error())
+	mockGoSNMP.AssertNotCalled(t, "BulkWalkAll", "2")
 }
 
 func TestGetScalarData(t *testing.T) {
